@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -36,65 +35,6 @@ func healthz(writer http.ResponseWriter, req *http.Request) {
 	writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	writer.WriteHeader(http.StatusOK)
 	writer.Write([]byte("OK"))
-}
-
-func validateChirp(writer http.ResponseWriter, req *http.Request) {
-
-	type parameters struct {
-        Body string `json:"body"`
-    }
-
-	type validVal struct {
-        Valid bool `json:"valid"`
-    }
-
-	type errorVal struct {
-		Errormsg string `json:"error"`
-	}
-
-    decoder := json.NewDecoder(req.Body)
-    params := parameters{}
-    err := decoder.Decode(&params)
-
-    if err != nil {
-		log.Printf("Error decoding parameters: %s", err)
-		writer.WriteHeader(500)
-		return
-    }
-
-	writer.Header().Set("Content-Type", "application/json")
-
-	// Test chirp logic
-	if len(params.Body) > 140 {
-		respBody := errorVal {
-			Errormsg: "Chirp is too long",
-		}
-
-		dat, err := json.Marshal(respBody)
-		if err != nil {
-			log.Printf("Error marshalling JSON: %s", err)
-			writer.WriteHeader(500)
-			return
-		}
-
-		writer.WriteHeader(400)
-    	writer.Write(dat)
-		return
-	}
-
-	respBody := validVal {
-		Valid: true,
-	}
-
-    dat, err := json.Marshal(respBody)
-	if err != nil {
-			log.Printf("Error marshalling JSON: %s", err)
-			writer.WriteHeader(500)
-			return
-	}
-    
-    writer.WriteHeader(200)
-    writer.Write(dat)
 }
 
 type apiConfig struct {
