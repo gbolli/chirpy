@@ -26,6 +26,7 @@ func main() {
 
 	apiCfg := apiConfig{
 		dbQueries: database.New(db),
+		platform: os.Getenv("PLATFORM"),
 	}
 
 	mux := http.NewServeMux()
@@ -50,6 +51,7 @@ func main() {
 type apiConfig struct {
 	fileserverHits atomic.Int32
 	dbQueries *database.Queries
+	platform string
 }
 
 func healthz(w http.ResponseWriter, r *http.Request) {
@@ -76,7 +78,15 @@ func (cfg *apiConfig) metrics(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg *apiConfig) reset(w http.ResponseWriter, r *http.Request) {
+	if cfg.platform != "dev" {
+		fmt.Println("Not in dev mode")
+		w.WriteHeader(403)
+		return
+	}
+
 	cfg.fileserverHits.Store(0)
+	cfg.dbQueries.DeleteAllUsers(r.Context())
+
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
