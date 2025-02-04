@@ -1,26 +1,42 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"sync/atomic"
+
+	"github.com/gbolli/chirpy/internal/database"
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 func main() {
+
+	godotenv.Load()
+	dbURL := os.Getenv("DB_URL")
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Printf("Database not connected: %v", err)
+	}
+
 	port := "8080"
 
+	apiCfg := apiConfig{
+		dbQueries: database.New(db),
+	}
+
 	mux := http.NewServeMux()
-	apiCfg := apiConfig{}
 
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(".")))))
-	//mux.Handle("/app", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(".")))))
 	mux.Handle("/assets/", http.FileServer(http.Dir("./assets")))
 	mux.HandleFunc("GET /api/healthz", healthz)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.metrics)
 	mux.HandleFunc("POST /admin/reset", apiCfg.reset)
 	mux.HandleFunc("POST /api/validate_chirp", validateChirp)
+	mux.HandleFunc("POST /api/users", apiCfg.createUser)
 
 	srv := http.Server{
 		Addr: ":" + port,
@@ -31,20 +47,21 @@ func main() {
 	log.Fatal(srv.ListenAndServe())
 }
 
-func healthz(writer http.ResponseWriter, req *http.Request) {
-	writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	writer.WriteHeader(http.StatusOK)
-	writer.Write([]byte("OK"))
-}
-
 type apiConfig struct {
 	fileserverHits atomic.Int32
+	dbQueries *database.Queries
+}
+
+func healthz(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cfg.fileserverHits.Add(1)
-		next.ServeHTTP(writer, req)
+		next.ServeHTTP(w, r)
 	})
 }
 
@@ -55,7 +72,6 @@ func (cfg *apiConfig) metrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
 
-	// w.Write([]byte(fmt.Sprintf(string(html), cfg.fileserverHits.Load())))
 	w.Write([]byte(fmt.Sprintf(string(html), cfg.fileserverHits.Load())))
 }
 
@@ -65,12 +81,5 @@ func (cfg *apiConfig) reset(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
 }
-
-// func middlewareLog(next http.Handler) http.Handler {
-// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-// 		log.Printf("%s %s", r.Method, r.URL.Path)
-// 		next.ServeHTTP(w, r)
-// 	})
-// }
 
 // To start the server:   go build -o out && ./out
