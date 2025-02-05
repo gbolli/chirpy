@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/gbolli/chirpy/internal/auth"
-	"github.com/gbolli/chirpy/internal/database"
 	"github.com/google/uuid"
 )
 
 
-func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) userLogin(w http.ResponseWriter, r *http.Request) {
+
 	type parameters struct {
 		Password string `json:"password"`
         Email string `json:"email"`
@@ -36,30 +36,17 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 		return
     }
 
+	// check password hash
+
 	nullEmail := sql.NullString{
 		String: params.Email,
 		Valid: true,
 	}
+	dbUser, err := cfg.dbQueries.GetUserByEmail(r.Context(), nullEmail)
 
-	// hash password
-
-	hashed_password, err := auth.HashPassword(params.Password)
-	if err != nil {
-		log.Printf("Error hashing password: %s", err)
-		w.WriteHeader(500)
-		return
-    }
-
-	newUser := database.CreateUserParams{
-		HashedPassword: hashed_password,
-		Email: nullEmail,
-	}
-
-	dbUser, err := cfg.dbQueries.CreateUser(r.Context(), newUser)
-
-	if err != nil {
-		log.Printf("Error creating user in database: %s", err)
-		w.WriteHeader(500)
+	if err != nil || auth.CheckPasswordHash(params.Password, dbUser.HashedPassword) != nil {
+		w.WriteHeader(401)
+		w.Write([]byte("Incorrect email or password"))
 		return
     }
 
@@ -79,6 +66,6 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(201)
+	w.WriteHeader(200)
 	w.Write(dat)
 }
