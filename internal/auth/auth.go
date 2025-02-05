@@ -1,14 +1,11 @@
 package auth
 
 import (
-	"fmt"
-
 	"golang.org/x/crypto/bcrypt"
 )
 
 func HashPassword(password string) (string, error) {
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	fmt.Printf("Generated hash: %s\n", hashed)
 	if err != nil { return "", err}
 	return string(hashed), nil
 }
