@@ -47,7 +47,7 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
     }
 
 	mainUser := User{
-		ID: dbUser.ID.UUID,
+		ID: dbUser.ID,
 		CreatedAt: dbUser.CreatedAt.Time,
 		UpdatedAt: dbUser.UpdatedAt.Time,
 		Email: dbUser.Email.String,
