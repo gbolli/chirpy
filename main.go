@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"sync/atomic"
 
 	"github.com/gbolli/chirpy/internal/database"
 	"github.com/joho/godotenv"
@@ -17,6 +16,7 @@ func main() {
 
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
+
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Printf("Database not connected: %v", err)
@@ -27,6 +27,7 @@ func main() {
 	apiCfg := apiConfig{
 		dbQueries: database.New(db),
 		platform: os.Getenv("PLATFORM"),
+		secret: os.Getenv("SECRET"),
 	}
 
 	mux := http.NewServeMux()
@@ -49,12 +50,6 @@ func main() {
 
 	log.Printf("Serving files on port %s\n", port)
 	log.Fatal(srv.ListenAndServe())
-}
-
-type apiConfig struct {
-	fileserverHits atomic.Int32
-	dbQueries *database.Queries
-	platform string
 }
 
 func healthz(w http.ResponseWriter, r *http.Request) {

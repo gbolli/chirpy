@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gbolli/chirpy/internal/auth"
 	"github.com/gbolli/chirpy/internal/database"
 	"github.com/google/uuid"
 )
@@ -40,6 +41,21 @@ func (cfg *apiConfig) createChirp(w http.ResponseWriter, r *http.Request) {
 		return
     }
 
+	// authenticate user token
+	bearer, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		log.Printf("Error getting bearer token: %s", err)
+		w.WriteHeader(500)
+		return
+	}
+
+	tokenUserID, err := auth.ValidateJWT(bearer, cfg.secret)
+	if err != nil {
+		log.Printf("Error getting bearer token: %s", err)
+		w.WriteHeader(401)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 
 	// Test chirp logic
@@ -63,7 +79,8 @@ func (cfg *apiConfig) createChirp(w http.ResponseWriter, r *http.Request) {
 	// create chirp in DB
 	newChirp := database.CreateChirpParams{
 		Body: cleanBody(params.Body),
-		UserID: params.UserID,
+		// use ID associated with token
+		UserID: tokenUserID,
 	}
 
 	dbChirp, err := cfg.dbQueries.CreateChirp(r.Context(), newChirp)
