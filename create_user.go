@@ -56,7 +56,6 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dbUser, err := cfg.dbQueries.CreateUser(r.Context(), newUser)
-
 	if err != nil {
 		log.Printf("Error creating user in database: %s", err)
 		w.WriteHeader(500)

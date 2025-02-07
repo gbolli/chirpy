@@ -6,7 +6,6 @@ import (
 	"strings"
 )
 
-
 func GetBearerToken(headers http.Header) (string, error) {
 
 	header := headers.Get("Authorization")
