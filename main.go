@@ -38,12 +38,14 @@ func main() {
 	mux.HandleFunc("GET /admin/metrics", apiCfg.metrics)
 	mux.HandleFunc("POST /admin/reset", apiCfg.reset)
 	mux.HandleFunc("POST /api/users", apiCfg.createUser)
+	mux.HandleFunc("PUT /api/users", apiCfg.updateUser)
 	mux.HandleFunc("POST /api/chirps", apiCfg.createChirp)
 	mux.HandleFunc("GET /api/chirps", apiCfg.getAllChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.getChirp)
 	mux.HandleFunc("POST /api/login", apiCfg.userLogin)
 	mux.HandleFunc("POST /api/refresh", apiCfg.refreshToken)
 	mux.HandleFunc("POST /api/revoke", apiCfg.revokeToken)
+
 
 	srv := http.Server{
 		Addr: ":" + port,
